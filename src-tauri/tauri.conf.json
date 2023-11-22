@@ -12,7 +12,16 @@
     },
     "tauri": {
         "allowlist": {
-            "all": false
+            "all": false,
+            "dialog": {
+                "open": true,
+                "save": true
+            },
+            "protocol": {
+                "all": false,
+                "asset": true,
+                "assetScope": ["**"]
+            }
         },
         "bundle": {
             "active": true,
