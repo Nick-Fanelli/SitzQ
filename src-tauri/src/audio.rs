@@ -1,10 +1,11 @@
 
-use std::{io::BufReader, fs::File};
+use std::{io::BufReader, fs::File, sync::atomic::{AtomicU64, Ordering}};
 use rodio::{Decoder, OutputStreamHandle, Sink};
 
 pub type AudioSource = rodio::source::Buffered<Decoder<BufReader<File>>>;
 
 pub struct AudioPlayer {
+    id: u64,
     stream_handle: OutputStreamHandle,
     audio_source: AudioSource,
 
@@ -13,9 +14,10 @@ pub struct AudioPlayer {
 
 impl AudioPlayer {
 
-    pub fn new(stream_handle: OutputStreamHandle, audio_source: AudioSource) -> Self {
+    pub fn new(id_atomic: &AtomicU64, stream_handle: OutputStreamHandle, audio_source: AudioSource) -> Self {
 
         AudioPlayer {
+            id: id_atomic.fetch_add(1, Ordering::SeqCst),
             stream_handle,
             audio_source,
             sink: None
@@ -45,6 +47,8 @@ impl AudioPlayer {
         }
 
     }
+
+    pub fn get_id(&self) -> u64 { self.id }
 
 }
 

@@ -8,6 +8,7 @@ use std::sync::Mutex;
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
 use std::thread;
 use std::time::Duration;
 
@@ -22,7 +23,7 @@ use audio::AudioPlayer;
 type MultithreadedAppState = Arc<Mutex<AppState>>;
 
 #[tauri::command]
-fn play_sound(audio_path: String, state: State<MultithreadedAppState>) {
+fn play_sound(audio_path: String, state: State<MultithreadedAppState>) -> u64 {
 
     let state = state.lock().unwrap();
 
@@ -42,10 +43,18 @@ fn play_sound(audio_path: String, state: State<MultithreadedAppState>) {
 
     let source = sources.get(&audio_path).expect("Error getting source");
 
-    let mut audio_player = AudioPlayer::new(state.stream_handle.clone(), source.clone()); // TODO: Fix the amount of clones happening
-    audio_player.play();
+    // TODO: Fix the amount of clones happening
+    let mut audio_player = AudioPlayer::new(
+        &state.audio_players_atomic, 
+        state.stream_handle.clone(),
+        source.clone());
 
+    let audio_player_id = audio_player.get_id();
+
+    audio_player.play();
     audio_players.push(audio_player);
+
+    return audio_player_id;
 
 }
 
@@ -64,6 +73,8 @@ struct AppState {
     stream_handle: OutputStreamHandle,
 
     sources: Mutex<HashMap<String, AudioSource>>,
+
+    audio_players_atomic: AtomicU64,
     audio_players: Mutex<Vec<AudioPlayer>>
 }
 
@@ -71,7 +82,10 @@ impl AppState {
     fn new(stream_handle: OutputStreamHandle) -> Self {
         AppState { 
             stream_handle,
+
             sources: Default::default(),
+
+            audio_players_atomic: AtomicU64::new(0),
             audio_players: Default::default()
         }
     }
