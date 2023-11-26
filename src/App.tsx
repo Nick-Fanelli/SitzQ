@@ -23,6 +23,7 @@ const App = () => {
             <h1>{soundFile}</h1>
             <button onClick={openSoundFile}>Open File</button>
             <button onClick={() => invoke('play_sound', { audioPath: soundFile })}>Play Sound File</button>
+            <button onClick={() => invoke('print_stats')}>Print Stats</button>
         </>
     )
 
