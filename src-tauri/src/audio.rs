@@ -7,9 +7,10 @@ use rodio::{Decoder, OutputStreamHandle, Sink, Source};
 use crate::app_state::MultithreadedAppState;
 
 pub type AudioSource = rodio::source::Buffered<Decoder<BufReader<File>>>;
+pub type AudioPlayerID = u64;
 
 pub struct AudioPlayer {
-    pub id: u64,
+    pub id: AudioPlayerID,
     stream_handle: OutputStreamHandle,
     audio_source: AudioSource,
 
@@ -31,8 +32,52 @@ impl AudioPlayer {
 
     pub fn play(&mut self) {
 
-        let sink = self.sink.get_or_insert_with(|| Sink::try_new(&self.stream_handle).expect("Error creating sink"));
-        sink.append(self.audio_source.clone());
+        match &self.sink {
+
+            Some(sink) => {
+                
+                if sink.is_paused() {
+                    sink.play();
+                } else {
+                    sink.append(self.audio_source.clone());
+                }
+
+            },
+
+            None => {
+                self.sink = Some(Sink::try_new(&self.stream_handle).expect("Error creating sink"));
+
+                match &self.sink {
+
+                    Some(sink) => {
+                        sink.append(self.audio_source.clone());
+                    },
+
+                    None => {
+                        eprintln!("ERROR: Problem creating sink");
+                    }
+
+                }
+                
+            }
+
+        }
+
+    }
+
+    pub fn pause(&self) {
+
+        match &self.sink {
+
+            Some(sink) => {
+                sink.pause();
+            },
+
+            None => {
+                eprintln!("WARNING: Calling pause on audio player without an optional sink!");
+            }
+
+        }
 
     }
 
@@ -51,6 +96,20 @@ impl AudioPlayer {
         }
 
     }
+
+}
+
+fn get_audio_player(audio_players: &Vec<AudioPlayer>, audio_player_id: AudioPlayerID) -> Option<&AudioPlayer> {
+
+    for audio_player in audio_players {
+
+        if audio_player.id == audio_player_id {
+            return Some(audio_player);
+        }
+
+    }
+
+    return None;
 
 }
 
@@ -87,5 +146,35 @@ pub fn play_sound(audio_path: String, state: State<MultithreadedAppState>) -> u6
     audio_players.push(audio_player);
 
     return audio_player_id;
+
+}
+
+#[tauri::command]
+pub fn pause_audio_player(audio_player_id: AudioPlayerID, state: State<MultithreadedAppState>) -> Result<(), String> {
+
+    println!("Pausing Audio Player ID: {}", audio_player_id);
+
+    let state = state.lock().unwrap();
+    let audio_players = state.audio_players.lock().unwrap();
+
+    let audio_player = get_audio_player(&audio_players, audio_player_id);
+
+    match audio_player {
+
+        Some(audio_player) => {
+
+            audio_player.pause();
+
+            return Ok(());
+
+        },
+
+        None => {
+
+            return Err("Audio player has been garbage collected or never existed".into());
+
+        }
+
+    }
 
 }

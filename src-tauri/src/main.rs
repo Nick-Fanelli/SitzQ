@@ -59,6 +59,8 @@ fn main() {
 
         .invoke_handler(tauri::generate_handler![
             audio::play_sound,
+            audio::pause_audio_player,
+
             print_stats
         ])
 
