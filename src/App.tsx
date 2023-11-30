@@ -1,13 +1,13 @@
 import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog"
-import { P } from "@tauri-apps/api/event-41a9edf5";
+import { convertFileSrc } from '@tauri-apps/api/tauri'
 import { useCallback, useRef, useState } from "react"
-import BackendAPI from "./api/BackendAPI";
+
+import { Howl } from 'howler';
 
 const App = () => {
 
     const [soundFile, setSoundFile] = useState<string | null>(null);
-    const [audioPlayerID, setAudioPlayerID] = useState<BackendAPI.Audio.AudioPlayerID | null>(null);
 
     const openSoundFile = useCallback(() => {
 
@@ -23,32 +23,29 @@ const App = () => {
 
     const playSound = useCallback(() => {
 
-        if(soundFile != null) {
-            BackendAPI.Audio.playSound(soundFile).then((res) => {
+        if(soundFile == null)
+            return; 
 
-                console.log("Audio Player ID: ", res);
-                setAudioPlayerID(res);
+        const sound = new Howl({
+            src: [convertFileSrc(soundFile)],
+            volume: 1
+        });
 
-            });
+        sound.play();
 
-        }
-
-    }, [soundFile, setAudioPlayerID]);
+    }, [soundFile]);
 
     const pauseSound = useCallback(() => {
 
-        audioPlayerID != null && BackendAPI.Audio.pauseSound(audioPlayerID);
 
-    }, [audioPlayerID]);
+    }, []);
 
     return (
         <>
             <h1>Sound File: {soundFile}</h1>
-            <h2>Audio Player ID: {audioPlayerID}</h2>
             <button onClick={openSoundFile}>Open File</button>
-            <button onClick={playSound}>Play Sound File</button>
+            <button onClick={playSound}>Play</button>
             <button onClick={pauseSound}>Pause</button>
-            <button onClick={() => invoke('print_stats')}>Print Stats</button>
         </>
     )
 
