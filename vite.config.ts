@@ -5,6 +5,8 @@ const mobile =
   process.env.TAURI_PLATFORM === "android" ||
   process.env.TAURI_PLATFORM === "ios";
 
+const port = process.env.VITE_PORT || 1420;
+
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
   plugins: [react()],
@@ -14,7 +16,7 @@ export default defineConfig(async () => ({
   clearScreen: false,
   // tauri expects a fixed port, fail if that port is not available
   server: {
-    port: 1420,
+    port: port,
     strictPort: true,
   },
   // to make use of `TAURI_DEBUG` and other env variables
